@@ -1,0 +1,72 @@
+user  nginx;
+worker_processes  1;
+
+error_log  /var/log/nginx/error.log warn;
+pid        /var/run/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    server_names_hash_bucket_size 128;
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    #
+    # Registrator Endpoints
+    #
+    {{if lsdir "/services/" }}
+    {{range $service := lsdir "/services/"}}
+    upstream {{base $service}} { {{ $endpoint := printf "/services/%s/*" $service}}
+        {{range gets $endpoint}}server {{.Value}};
+        {{end}}
+    }
+    {{end}}
+    {{end}}
+
+    #
+    # Hosts
+    #
+
+    {{if lsdir "/nginx/hosts/"}}
+    {{range $host := lsdir "/nginx/hosts/"}}
+    server {
+        listen 80;
+        {{ $server := base $host }}
+        server_name {{$server}};
+
+        {{ $proxy_path := printf "/nginx/hosts/%s/upstream" $server }}# {{ $proxy_path }}
+        {{ $service_name := getv $proxy_path }}# {{ $service_name }}
+        {{ $service_path := printf "/services/%s/" $service_name }}# {{ $service_path }}
+        {{ if ls $service_path }}
+        location / {
+            proxy_pass http://{{$service_name}};
+            proxy_redirect off;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+        {{ end }}
+    }
+    {{end}}
+    {{end}}
+
+
+    include /etc/nginx/conf.d/*.conf;
+}
