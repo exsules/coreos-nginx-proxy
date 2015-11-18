@@ -1,0 +1,1 @@
+[![Docker Repository on Quay](https://quay.io/repository/exsules/coreos-nginx-proxy/status "Docker Repository on Quay")](https://quay.io/repository/exsules/coreos-nginx-proxy)
