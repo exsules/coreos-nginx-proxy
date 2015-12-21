@@ -20,6 +20,7 @@ echo "[nginx] confd is now monitoring etcd for changes..."
 
 # Start the Haproxy service using the generated config
 echo "[nginx] starting nginx service..."
+chown nginx:nginx /var/lib/nginx -R
 /usr/sbin/nginx -g 'daemon off;'
 
 tail -f /var/log/nginx/access.log
